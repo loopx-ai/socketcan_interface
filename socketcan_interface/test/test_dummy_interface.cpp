@@ -5,30 +5,33 @@
 // Bring in gtest
 #include <gtest/gtest.h>
 
-class DummyInterfaceTest : public ::testing::Test{
-public:
-    std::list<std::string> responses;
-    can::DummyInterface dummy;
-    DummyInterfaceTest() : dummy(true), listener(dummy.createMsgListener(can::CommInterface::FrameDelegate(this, &DummyInterfaceTest::handle ))) { }
-
-   void handle(const can::Frame &f){
-        responses.push_back(can::tostring(f, true));
-    }
-    can::FrameListenerConstSharedPtr listener;
-};
-
 // Declare a test
-TEST_F(DummyInterfaceTest, testCase1)
+TEST(DummyInterfaceTest, testCase1)
 {
-    dummy.add("0#8200", "701#00" ,false);
+    can::DummyBus bus("testCase1");
+    can::ThreadedDummyInterface dummy;
+    dummy.init(bus.name, true, can::NoSettings::create());
 
-    std::list<std::string> expected;
+    can::DummyReplay replay;
+    replay.add("0#8200", {"701#00", "701#04"});
+    replay.init(bus);
+
+    std::list<std::string> expected{"0#8200", "701#00", "701#04"};
+    std::list<std::string> responses;
+
+    auto listener = dummy.createMsgListener([&responses](auto& f) {
+        responses.push_back(can::tostring(f, true));
+    });
+
+    EXPECT_FALSE(replay.done());
 
     dummy.send(can::toframe("0#8200"));
-    expected.push_back("0#8200");
-    expected.push_back("701#00");
+
+    replay.flush();
+    dummy.flush();
 
     EXPECT_EQ(expected, responses);
+    EXPECT_TRUE(replay.done());
 }
 
 

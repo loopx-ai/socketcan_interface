@@ -2,6 +2,36 @@
 Changelog for package socketcan_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.8.5 (2020-09-22)
+------------------
+
+0.8.4 (2020-08-22)
+------------------
+* pass settings from ROS node to SocketCANInterface
+* Contributors: Mathias Lüdtke
+
+0.8.3 (2020-05-07)
+------------------
+* add includes to <memory>
+* Bump CMake version to avoid CMP0048 warning
+  Signed-off-by: ahcorde <ahcorde@gmail.com>
+* Contributors: Mathias Lüdtke, ahcorde
+
+0.8.2 (2019-11-04)
+------------------
+* fix roslint errors in socketcan_bridge
+* run roslint as part of run_tests
+* enable rosconsole_bridge bindings
+* Contributors: Mathias Lüdtke
+
+0.8.1 (2019-07-14)
+------------------
+* Added configurable queue sizes
+* Set C++ standard to c++14
+* implemented create\*ListenerM helpers
+* Replacing FastDelegate with std::function and std::bind.
+* Contributors: Harsh Deshpande, JeremyZoss, Joshua Whitley, Mathias Lüdtke, rchristopher
+
 0.8.0 (2018-07-11)
 ------------------
 * keep NodeHandle alive in socketcan_bridge tests

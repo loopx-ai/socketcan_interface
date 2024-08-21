@@ -12,14 +12,22 @@ namespace can{
 
 
 template<typename Socket> class AsioDriver : public DriverInterface{
-    typedef FilteredDispatcher<unsigned int, CommInterface::FrameListener> FrameDispatcher;
-    typedef SimpleDispatcher<StateInterface::StateListener> StateDispatcher;
+    using FrameDispatcher = FilteredDispatcher<unsigned int, CommInterface::FrameListener>;
+    using StateDispatcher = SimpleDispatcher<StateInterface::StateListener>;
     FrameDispatcher frame_dispatcher_;
     StateDispatcher state_dispatcher_;
 
     State state_;
     boost::mutex state_mutex_;
     boost::mutex socket_mutex_;
+
+    void shutdown_internal(){
+        if(socket_.is_open()){
+            socket_.cancel();
+            socket_.close();
+        }
+        io_service_.stop();
+    }
 
 protected:
     boost::asio::io_service io_service_;
@@ -35,7 +43,7 @@ protected:
     virtual bool enqueue(const Frame & msg) = 0;
 
     void dispatchFrame(const Frame &msg){
-        strand_.post(boost::bind(&FrameDispatcher::dispatch, &frame_dispatcher_, msg)); // copies msg
+        strand_.post([this, msg]{ frame_dispatcher_.dispatch(msg.key(), msg);} ); // copies msg
     }
     void setErrorCode(const boost::system::error_code& error){
         boost::mutex::scoped_lock lock(state_mutex_);
@@ -78,7 +86,7 @@ protected:
     {}
 
 public:
-    virtual ~AsioDriver() { shutdown(); }
+    virtual ~AsioDriver() { shutdown_internal(); }
 
     State getState(){
         boost::mutex::scoped_lock lock(state_mutex_);
@@ -109,20 +117,16 @@ public:
     }
 
     virtual void shutdown(){
-        if(socket_.is_open()){
-            socket_.cancel();
-            socket_.close();
-        }
-        io_service_.stop();
+        shutdown_internal();
     }
 
-    virtual FrameListenerConstSharedPtr createMsgListener(const FrameDelegate &delegate){
+    virtual FrameListenerConstSharedPtr createMsgListener(const FrameFunc &delegate){
         return frame_dispatcher_.createListener(delegate);
     }
-    virtual FrameListenerConstSharedPtr createMsgListener(const Frame::Header&h , const FrameDelegate &delegate){
-        return frame_dispatcher_.createListener(h, delegate);
+    virtual FrameListenerConstSharedPtr createMsgListener(const Frame::Header&h , const FrameFunc &delegate){
+        return frame_dispatcher_.createListener(h.key(), delegate);
     }
-    virtual StateListenerConstSharedPtr createStateListener(const StateDelegate &delegate){
+    virtual StateListenerConstSharedPtr createStateListener(const StateFunc &delegate){
         return state_dispatcher_.createListener(delegate);
     }
 
